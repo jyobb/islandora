@@ -1,0 +1,24 @@
+This theme was developed to allow linking direclty a contributing institutions web site.
+Requirement for this to work include
+
+A solr/mods field that contains the link to the institutions:
+
+--mods_location_url_ms - this how it need to be available in solr
+--The solrconfig.xml needs to be set up to export the above field (the fl parameter of the parser)
+--The islandora_solr_config.module needs to have the following added to the 'function islandora_solr_config_islandora_solr_primary_display()'	    
+
+    'glenbow_custom' => array(
+      'name' => t('Glenbow Custom'),
+      'module' => 'islandora_solr_config',
+      'file' => 'IslandoraSolrGlenbowCustom.inc',
+      'class' => "IslandoraSolrGlenbowCustom",
+      'function' => "displayResults",
+      'description' => t("Customized output for Glenbow"),
+    ),
+
+--The IslandoraSolrGlenbowCustom.inc needs to override the display results function look at this function for the bit of 
+      customization that is required.  This file creates adds an imageLink to the variables that are passed on to the 
+      preprocessing function.  
+
+--The themes directory contain the template and the preprocessing functions.  Neither should need to be touched to make this work
+
