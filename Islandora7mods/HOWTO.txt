@@ -1,0 +1,41 @@
+Islandora 7 MODS indexing
+
+Thanks to Nelson Hart, Jonathan Green and Paul Pound for the starting point on this. I really just tweaked a few things.
+
+Grab the following files. They will need to be placed in the correct folders for your environment.  The xml and xslt files you can problaby just look at and move over the appropriate stuff.
+
+File 1 -> DataStreamForXslt.tar.gz
+The first is the java plugin that gets called by fedoragsearch to grab the MODS datastream. I have mine in:
+/usr/fedora/tomcat/webapps/fedoragsearch/WEB-INF/classes/ca/ca/upei/roblib/DataStreamForXSLT.class
+Untaring in the /usr/fedora/tomcat/webapps/fedoragsearch/WEB-INF/classes directory should work
+
+File 2 -> buildthing.sh
+This script builds the DataStreamForXslt.class file from the java file
+/usr/fedora/tomcat/webapps/fedoragsearch/WEB-INF/classes
+If this does not work the paths may need to be adjusted in the buildthing.sh script or the java file.
+
+Edit the /usr/fedora/tomcat/webapps/fedoragsearch/WEB-INF/classes/log4j.xml add:
+  <logger name="ca.upei.roblib" additivity="false">
+    <level value="DEBUG" />
+    <appender-ref ref="FILEOUT"/>
+  </logger>
+
+This will dump a bunch of stuff to the fedoragsearch log.  Mine is located at /usr/fedora/server/logs/fedoragsearch.daily.log
+
+
+File 3 -> foxmlToSolr.xslt
+This is what is reponsible for doing the transformation. I would have prefered to have the MODS in a seperate file but it works.
+The changes to note are the declaration in the top, the call to getXMLDatastreamASNodeList and the MODS fields
+
+If you are not sure that the javaclass is being called you can uncomment out:
+<field name="mods.all">                                                                                                                                                                
+       <xsl:value-of select="islandora-exts:getDatastreamTextRaw($PID, $REPOSITORYNAME, 'MODS', $FEDORASOAP, $FEDORAUSER, $FEDORAPASS, $TRUSTSTOREPATH, $TRUSTSTOREPASS)"/>                    
+</field>
+This will give you a field that should show up in the fedoragsearch.daily.log file MODS dump 
+
+
+There is a bit at the end of the file what includes the MODS fields in the index.
+File 4 -> schema.xml
+
+Restart tomcat and hope for the best.
+I ususally check /usr/fedora/tomcat/logs/catalina.out after restarting to make sure the xslt is valid.  Any xslt error pop out here.
