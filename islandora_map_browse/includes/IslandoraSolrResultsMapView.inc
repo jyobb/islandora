@@ -5,10 +5,6 @@ ini_set('display_errors', TRUE);
 ini_set('display_startup_errors', TRUE);
 */
 
-/**
- * @file
- * Contains methods to search solr and display results.  depends on Apache_Solr_Php client.
- */
 
 module_load_include('inc', 'islandora_solr_search', 'IslandoraSolrResults');
 
@@ -19,17 +15,6 @@ module_load_include('inc', 'islandora_solr_search', 'IslandoraSolrResults');
 
 class IslandoraSolrResultsMapView extends IslandoraSolrResults {
 
-
-/*
-  function IslandoraSolrResultsMapView() {
-    if (module_exists('apachesolr')) {
-      module_load_include('php', 'apachesolr', 'SolrPhpClient/Apache/Solr/Service');
-    }
-    else {
-      module_load_include('php', 'islandora_solr_search', 'SolrPhpClient/Apache/Solr/Service');
-    }
-  }
-*/
   /**
    * Outputs results basically in the normal way, but with thumbnails pulled
    * from the Fedora repository.
@@ -41,64 +26,124 @@ class IslandoraSolrResultsMapView extends IslandoraSolrResults {
    *   html output for the resultset. Note: we currently create this
    *   output manually, should refactor to use drupal forms api.
    */
-  function mapResults($solrQueryProcessor) {
+function mapResults($solrQueryProcessor) {
 
-$withVal = 0;
-$withoutVal = 0;
+	 $withVal = 0;
+	 $withoutVal = 0;
 
-//drupal_set_message(var_dump($solrQueryProcessor));
+	 $response_data = $solrQueryProcessor->islandoraSolrResult['response'];
+	 //Dump the following into drupal set message to see what your dealing with
+	 $res = $solrQueryProcessor;
+	 
+	 //Set up the variables that get passed to javascript
+	 $this->prepareVariables($solrQueryProcessor);
+
+	 //This section resets the limits on the query and re-executes
+	 $upperlimit = $solrQueryProcessor->islandoraSolrResult['response']['numFound'];
+	 $lowerlimit = 0;
+	 $increment = 5000;
+	 $solrQueryProcessor->solrStart = $lowerlimit;
+	 $solrQueryProcessor->solrLimit = $increment;
+
+	 $solrQueryProcessor->resetResults();
+	 $solrQueryProcessor->executeQuery();
+	 $response_data = $solrQueryProcessor->islandoraSolrResult['response'];
+
+	 $out = $this->prepareSolrResults($response_data);
+
+return $out;
+
+}//End of mapResult
+
+
+  /**
+   * @param $results
+   *   A solr resultset object.
+   *
+   * @return
+   *   html output for the resultset.
+   */
+function mapPageResults($solrQueryProcessor) {
+
+	 $page = 0;
+	 $url_args = array();
+	 $url_args = parse_str(parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY));
+	 $increment = 20;
+	 $lowerlimit = ((($page + 1)*$increment)-$increment);
+
+	 //Set up the variables that get passed to javascript
+	 $this->prepareVariables($solrQueryProcessor);
+
+	 //$queryInfoForJS = array();
+	 $response_data = $solrQueryProcessor->islandoraSolrResult['response'];
+
+	 //Dump the following into drupal set message to see what your dealing with var_dump to debug
+	 $res = $solrQueryProcessor;
+
+	 //This section resets the limits on the query and re-executes
+	 $upperlimit = $solrQueryProcessor->islandoraSolrResult['response']['numFound'];
+
+	 $solrQueryProcessor->solrStart = $lowerlimit;
+	 $solrQueryProcessor->solrLimit = $increment;
+
+	 $solrQueryProcessor->resetResults();
+	 $solrQueryProcessor->executeQuery();
+	 $response_data = $solrQueryProcessor->islandoraSolrResult['response'];
+
+	 $out = $this->prepareSolrResults($response_data);
+
+return $out;
+
+}//End of mapPageResults
+
 
 /**
- * The solrQueryProcessor contains the response from solr.  This includes 
- * the original query doing a drupal_set_message(var_dump($solrQueryProcessor));
- * will allow you to see what you have to work with
+ * @param $solrQueryProcessor
+ * A solr query object
+ *
+ * @return nothing
+ * Passes information needed by javascript to process results 
  */
-//drupal_set_message($solrQueryProcessor->islandoraSolrResult['response']['numFound']);
-//drupal_set_message("processor: ". $solrQueryProcessor->solrQuery);
+function prepareVariables($solrQueryProcessor){
+	 /*
+	 drupal_set_message(variable_get('map_browse_fedora_base'));
+	 drupal_set_message(variable_get('map_browse_fedora_prefix'));
+	 drupal_set_message(variable_get('map_browse_fedora_suffix'));
+	 drupal_set_message(variable_get('map_browse_map_centre'));
+	 drupal_set_message(variable_get('map_browse_max_rows_to_render'));
+	 drupal_set_message("clustering 0 is item 1 is locations: ". variable_get('map_browse_clustering'));
+	 */
 
-  $element = array(
-'#type' => 'markup',
-'#markup' => '<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCzzh-hzjLBsi6n9J7VPGg-OmeTTtt2v8M&sensor=false"></script>',
-);
+	 $clusterType = variable_get('map_browse_clustering');
+	 if($clusterType == 0){
+	 	drupal_add_js(drupal_get_path('module', 'islandora_map_browse') . '/js/open_map_item.js', 'file');
+	 } else {
+	   	drupal_add_js(drupal_get_path('module', 'islandora_map_browse') . '/js/open_map_locations.js', 'file');
+	 }
 
+	 drupal_add_js(drupal_get_path('module', 'islandora_map_browse') . '/js/OpenLayers-2.12/OpenLayers.js', 'file');
+	 $InfoForJS['qt'] = $solrQueryProcessor->solrQuery;
+	 $InfoForJS['numFound'] = $solrQueryProcessor->islandoraSolrResult['response']['numFound'];
+	 $InfoForJS['rows'] = $solrQueryProcessor->solrLimit;
+	 $InfoForJS['baseUrl'] = variable_get('map_browse_fedora_base');
+	 $InfoForJS['fedoraPrefix'] = variable_get('map_browse_fedora_prefix');
+	 $InfoForJS['fedoraSuffix'] = variable_get('map_browse_fedora_suffix');
+	 $jsInfo = json_encode($InfoForJS);
+	 drupal_add_js(array('islandora_map_browse_settings_jsInfo' => $jsInfo), 'setting');
+}
 
-drupal_add_html_head($element, 'google_api');
-//drupal_add_js(drupal_get_path('module', 'islandora_map_browse') . '/js/map_inludes.js', 'file');
-//drupal_add_js(drupal_get_path('module', 'islandora_map_browse') . '/js/markerclusterer.js', 'file');
-drupal_add_js(drupal_get_path('module', 'islandora_map_browse') . '/js/open_map_includes.js', 'file');
-drupal_add_js(drupal_get_path('module', 'islandora_map_browse') . '/js/OpenLayers-2.12/OpenLayers.js', 'file');
-
-
-$queryInfoForJS = array();
-
-$response_data = $solrQueryProcessor->islandoraSolrResult['response'];
-
-//Dump the following into drupal set message to see what your dealing with
-$res = $solrQueryProcessor;
-
-//drupal_set_message(print_r($res));
-
-$InfoForJS['qt'] = $solrQueryProcessor->solrQuery;
-$InfoForJS['numFound'] = $solrQueryProcessor->islandoraSolrResult['response']['numFound'];
-$InfoForJS['rows'] = $solrQueryProcessor->solrLimit;
-//Need to query drupal for the fedora URL 
-$InfoForJS['baseUrl'] = "http://islandorasev-dev.usask.ca";
-$InfoForJS['fedoraPrefix'] = "/islandora/object/";
-$InfoForJS['fedoraSuffix'] = "/datastream/TN/view";
-$InfoForJS['objectPrefix'] = "/islandora/object/";
-
-
-//This section resets the limits on the query and re-executes
-$upperlimit = $solrQueryProcessor->islandoraSolrResult['response']['numFound'];
-$lowerlimit = 0;
-$increment = 5000;
-$solrQueryProcessor->solrStart = $lowerlimit;
-$solrQueryProcessor->solrLimit = $increment;
-
-$solrQueryProcessor->resetResults();
-$solrQueryProcessor->executeQuery();
-$response_data = $solrQueryProcessor->islandoraSolrResult['response'];
-
+/**
+ * @params $solrResultSet
+ *
+ * @return HTML output
+ *
+ * This functions dedups the results of the query and send them to javascript
+ * it also passes some information about the result sets
+ *
+ */ 
+function prepareSolrResults ($response_data) {
+$withVal = 0;
+$withoutVal = 0;
 
 $object_results = $response_data['objects'];
 $newpins = array();
@@ -137,29 +182,29 @@ foreach ($response_data['objects'] as $object_result) {
        	  }
 }
 
-$InfoForJS['pinsCount'] = $withVal;
-$InfoForJS['nopinsCount'] = $withoutVal;
+$pinInfo['pinsCount'] = $withVal;
+$pinInfo['nopinsCount'] = $withoutVal;
 
-
-//drupal_set_message(print_r($newpins));
 //Encode everything that goes to JS
-$jsInfo = json_encode($InfoForJS);
+$jsPinInfo = json_encode($pinInfo);
 $jnopins = json_encode($nopins);
 $jpins = json_encode($newpins);
-//drupal_set_message(print_r($nopins));
-//drupal_set_message(print_r($jnopins));
-
 
 drupal_add_js(array('islandora_map_browse_settings' => array('centre' => '52.1311, -106.6353')), 'setting');
+drupal_add_js(array('islandora_map_browse_settings_pininfo' => $jsPinInfo), 'setting');
 drupal_add_js(array('islandora_map_browse_settings_pins' => $jpins), 'setting');
 drupal_add_js(array('islandora_map_browse_settings_nopins' => $jnopins), 'setting');
-drupal_add_js(array('islandora_map_browse_settings_jsInfo' => $jsInfo), 'setting');
-//drupal_add_js(array('islandora_map_browse_settings_raw' => $res), 'setting');
-    
+
+
+if($withoutVal == 0){
+	       $output = '<div id="info_canvas" style="width:800px; height:60px;"></div><div id="map_canvas" style="width:800px; height:800px; float: left;"></div><div id="text_canvas" style="width:30px; height:600px; float: right; overflow: auto;"></div>';
+}else{
     $output = '<div id="info_canvas" style="width:600px; height:60px;"></div><div id="map_canvas" style="width:600px; height:600px; float: left;"></div><div id="text_canvas" style="width:300px; height:600px; float: right; overflow: auto;"></div>';
+
+}
    return $output;
 
-  }
+}
 
 }
 
