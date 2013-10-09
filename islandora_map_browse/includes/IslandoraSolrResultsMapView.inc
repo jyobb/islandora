@@ -178,6 +178,8 @@ function prepareSolrResultsGEOJSON ($response_data) {
 $withVal = 0;
 $withoutVal = 0;
 
+//var_dump($response_data);
+
 $mods_location = variable_get('map_browse_coord_field');
 
 $object_results = $response_data['objects'];
@@ -191,14 +193,14 @@ foreach ($response_data['objects'] as $object_result) {
 	$obj = $object_result['object_url'];
 	$coordinatesLatLon = null;		
 	//Need to put a check in here to avoid the undefined index error
-
 	if( isset($doc[$mods_location]) && $doc[$mods_location] != ''){
               $withVal++;
-	$parts = explode(",",$doc[$mods_location][0]);
-	$lat = floatval($parts[0]);
-	$lon = floatval($parts[1]);
-	    $geoArr["features"][] = array("type" => "Feature", "geometry" => array("type" => "Point", "coordinates" => array($lon,$lat)), "properties" => array ("title" => $doc["dc.title"], "contrib" => $doc["dc.contributor"], "loc" => $doc["mods_location_physicalLocation_ms"],"desc" => $doc["dc.description"],"obj_url" => $obj,"thumb_url" => $thumb)); 
+	      $parts = explode(",",$doc[$mods_location][0]);
+	      $lat = floatval($parts[0]);
+	      $lon = floatval($parts[1]);
+	      $geoArr["features"][] = array("type" => "Feature", "geometry" => array("type" => "Point", "coordinates" => array($lon,$lat)), "properties" => array ("title" => $doc["dc.title"], "contrib" => $doc["dc.contributor"], "loc" => $doc["mods_location_physicalLocation_ms"],"desc" => $doc["dc.description"],"obj_url" => $obj,"thumb_url" => $thumb)); 
 	}else{
+		if(strcmp($doc["RELS_EXT_hasModel_uri_ms"]['0'], "info:fedora/islandora:collectionCModel") != 0 ){
 			$nopins[$doc['PID']] = array ("obj_url" => $obj,"thumb_url" => $thumb);
 			if(isset($doc["dc.title"])){
 				$nopins[$doc['PID']]["title"] = $doc["dc.title"]; 
@@ -209,7 +211,8 @@ foreach ($response_data['objects'] as $object_result) {
 			if(isset($doc["dc.description"])){
 				$nopins[$doc['PID']]["desc"] = $doc["dc.description"]; 
 			}			
-	  $withoutVal++; 
+			$withoutVal++; 
+	  	}
        	  }
 }
 
