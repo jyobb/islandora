@@ -37,9 +37,20 @@ function map_browse_config($form, &$form_state) {
     '#required' => TRUE,
   );
 
+  $form['map_browse_coord_field'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Solr Coordinate Field'),
+    '#default_value' => variable_get('map_browse_coord_field', 'mods_subject_cartographics_coordinates_ms'),
+    '#size' => 40,
+    '#maxlength' => 128,
+    '#description' => t('MODS field containing coordinates in Latitude/Longitude format'),
+    '#required' => TRUE,
+  );
+
+
   $form['map_browse_map_centre'] = array(
     '#type' => 'textfield',
-    '#title' => t('Default map centre'),
+    '#title' => t('Default Map Centre'),
     '#default_value' => variable_get('map_browse_map_centre', '52.1311, -106.6353'),
     '#size' => 40,
     '#maxlength' => 128,
@@ -64,9 +75,10 @@ function map_browse_config($form, &$form_state) {
     '#title' => t('Clustering Model'),
     '#default_value' => 0,
     '#options' => $cluster_type,
-    '#description' => t('Cluster by locations or items at a location.'),
+    '#description' => t('Cluster by locations or items at a location.  Currently not functioning.'),
     
   );
+
   return system_settings_form($form);
 
 }

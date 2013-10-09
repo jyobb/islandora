@@ -142,9 +142,6 @@ return $out;
 }//End of mapPageResults
 
 
-
-
-
 /**
  * @param $solrQueryProcessor
  * A solr query object
@@ -168,8 +165,6 @@ function prepareGEOJSONVariables($solrQueryProcessor){
 
 
 
-
-
 /**
  * @params $solrResultSet
  *
@@ -183,6 +178,8 @@ function prepareSolrResultsGEOJSON ($response_data) {
 $withVal = 0;
 $withoutVal = 0;
 
+$mods_location = variable_get('map_browse_coord_field');
+
 $object_results = $response_data['objects'];
 //$newpins = array();
 $nopins = array();         
@@ -195,12 +192,12 @@ foreach ($response_data['objects'] as $object_result) {
 	$coordinatesLatLon = null;		
 	//Need to put a check in here to avoid the undefined index error
 
-	if( isset($doc['mods_coordinates_p']) && $doc['mods_coordinates_p'] != ''){
+	if( isset($doc[$mods_location]) && $doc[$mods_location] != ''){
               $withVal++;
-	$parts = explode(",",$doc['mods_coordinates_p']);
+	$parts = explode(",",$doc[$mods_location][0]);
 	$lat = floatval($parts[0]);
 	$lon = floatval($parts[1]);
-	    $geoArr["features"][] = array("type" => "Feature", "geometry" => array("type" => "Point", "coordinates" => array($lon,$lat)), "properties" => array ("title" => $doc["dc.title"], "contrib" => $doc["dc.contributor"], "loc" => $doc["mods_physicalLocation_ms"],"desc" => $doc["dc.description"],"obj_url" => $obj,"thumb_url" => $thumb)); 
+	    $geoArr["features"][] = array("type" => "Feature", "geometry" => array("type" => "Point", "coordinates" => array($lon,$lat)), "properties" => array ("title" => $doc["dc.title"], "contrib" => $doc["dc.contributor"], "loc" => $doc["mods_location_physicalLocation_ms"],"desc" => $doc["dc.description"],"obj_url" => $obj,"thumb_url" => $thumb)); 
 	}else{
 			$nopins[$doc['PID']] = array ("obj_url" => $obj,"thumb_url" => $thumb);
 			if(isset($doc["dc.title"])){
@@ -225,8 +222,6 @@ $pinInfo['nopinsCount'] = $withoutVal;
 $jsPinInfo = json_encode($pinInfo);
 $jnopins = json_encode($nopins);
 $geopins = json_encode($geoArr);
-//var_dump($geopins);
-
 
 drupal_add_js(array('islandora_map_browse_settings' => array('centre' => '52.1311, -106.6353')), 'setting');
 drupal_add_js(array('islandora_map_browse_settings_pininfo' => $jsPinInfo), 'setting');
