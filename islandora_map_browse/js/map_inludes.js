@@ -66,7 +66,7 @@ function initialize() {
 
     //Handle the non pins and page query info
     sideBar.innerHTML = sidebarContent(noPinsObj);
-    topBar.innerHTML = "There where " + withLocationCnt + " records with location information of a possible " + numFound;
+    topBar.innerHTML = "There were " + withLocationCnt + " records with location information of a possible " + numFound;
 
     //Now push the markers onto the map 
     locationResults = markers.length;
