@@ -54,7 +54,7 @@ function initialize() {
     ////////////////////////////////////
     //This builds up the top bar content
     ////////////////////////////////////
-    topBar.innerHTML = "There where " + withLocationCnt + " records with location information of a possible " + numFound;
+    topBar.innerHTML = "There were " + withLocationCnt + " records with location information of a possible " + numFound;
 
     /////////////////////////////
     //Below is the map area code
